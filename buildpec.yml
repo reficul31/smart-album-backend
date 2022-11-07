@@ -1,0 +1,10 @@
+version: 0.1
+phases:
+  install:
+    commands:
+      - aws cloudformation package --template-file template.yaml --s3-bucket codepipeline-us-east-1-490767416841 --output-template-file output.yml
+artifacts:
+  type: zip
+  files:
+    - template.yaml
+    - output.yml

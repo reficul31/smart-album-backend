@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS Serverless Specification template describing your function.
+Resources:
+  indexphotos:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: index-photos
+      Handler: index-photos.lambda_handler
+      Runtime: python3.8
+      CodeUri: .
+      Description: ''
+      MemorySize: 128
+      Timeout: 60
+      Role: 'arn:aws:iam::964937258460:role/service-role/index-photos-role-bcq7kqcy'
+
+  searchphotos:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: search-photos
+      Handler: search-photos.lambda_handler
+      Runtime: python3.8
+      CodeUri: .
+      Description: ''
+      MemorySize: 128
+      Timeout: 60
+      Role: 'arn:aws:iam::964937258460:role/service-role/search-photos-role-s31jbyft'
+
+  corslambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: cors-lambda.lambda_handler
+      Runtime: python3.9
+      CodeUri: .
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Role: 'arn:aws:iam::964937258460:role/service-role/cors-lambda-role-22qom0dz'
