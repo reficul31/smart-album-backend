@@ -2,36 +2,52 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Description: An AWS Serverless Specification template describing your function.
 Resources:
+  PhotoAlbumBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: 'sb4539-hw2-photos'
   indexphotos:
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: index-photos
       Handler: index-photos.lambda_handler
       Runtime: python3.8
-      CodeUri: .
+      CodeUri: ./index-photos
       Description: ''
       MemorySize: 128
       Timeout: 60
       Role: 'arn:aws:iam::964937258460:role/service-role/index-photos-role-bcq7kqcy'
-
+      Events:
+        S3PutObjectEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref PhotoAlbumBucket
+            Events: s3:ObjectCreated:*
+  
   searchphotos:
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: search-photos
       Handler: search-photos.lambda_handler
       Runtime: python3.8
-      CodeUri: .
+      CodeUri: ./search-photos
       Description: ''
       MemorySize: 128
       Timeout: 60
       Role: 'arn:aws:iam::964937258460:role/service-role/search-photos-role-s31jbyft'
+      Events:
+        PhotoAlbum:
+          Type: Api
+          Properties:
+            Path: /search
+            Method: GET
 
   corslambda:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: cors-lambda.lambda_handler
       Runtime: python3.9
-      CodeUri: .
+      CodeUri: ./cors-lambda
       Description: ''
       MemorySize: 128
       Timeout: 3
