@@ -17,6 +17,7 @@ Resources:
       MemorySize: 128
       Timeout: 60
       Role: 'arn:aws:iam::964937258460:role/service-role/index-photos-role-bcq7kqcy'
+      Layers: [arn:aws:lambda:us-east-1:964937258460:layer:PythonRequestsDependencyLayer:3]
       Events:
         S3PutObjectEvent:
           Type: S3
@@ -35,6 +36,7 @@ Resources:
       MemorySize: 128
       Timeout: 60
       Role: 'arn:aws:iam::964937258460:role/service-role/search-photos-role-s31jbyft'
+      Layers: [arn:aws:lambda:us-east-1:964937258460:layer:PythonRequestsDependencyLayer:3]
       Events:
         PhotoAlbum:
           Type: Api
@@ -52,3 +54,10 @@ Resources:
       MemorySize: 128
       Timeout: 3
       Role: 'arn:aws:iam::964937258460:role/service-role/cors-lambda-role-22qom0dz'
+      Layers: [arn:aws:lambda:us-east-1:964937258460:layer:PythonRequestsDependencyLayer:3]
+      Events:
+        PhotoAlbum:
+          Type: Api
+          Properties:
+            Path: /upload
+            Method: OPTIONS
