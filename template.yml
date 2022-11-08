@@ -35,18 +35,18 @@ Resources:
       FunctionName: index-photos
       Handler: index-photos.lambda_handler
       Runtime: python3.8
-      CodeUri: ./
+      CodeUri: ./index-photos
       Description: ''
       MemorySize: 128
       Timeout: 60
       Role: 'arn:aws:iam::964937258460:role/service-role/index-photos-role-bcq7kqcy'
       Layers: [arn:aws:lambda:us-east-1:964937258460:layer:PythonRequestsDependencyLayer:3]
       Events:
-        S3PutObjectEvent:
+        S3Trigger:
           Type: S3
           Properties:
             Bucket: !Ref PhotoAlbumBucket
-            Events: s3:ObjectCreated:*
+            Events: s3:ObjectCreated:Put
   
   searchphotos:
     Type: 'AWS::Serverless::Function'
@@ -54,7 +54,7 @@ Resources:
       FunctionName: search-photos
       Handler: search-photos.lambda_handler
       Runtime: python3.8
-      CodeUri: ./
+      CodeUri: ./search-photos
       Description: ''
       MemorySize: 128
       Timeout: 60
@@ -70,9 +70,10 @@ Resources:
   corslambda:
     Type: 'AWS::Serverless::Function'
     Properties:
+      FunctionName: cors-lambda
       Handler: cors-lambda.lambda_handler
-      Runtime: python3.9
-      CodeUri: ./
+      Runtime: python3.8
+      CodeUri: ./cors-lambda
       Description: ''
       MemorySize: 128
       Timeout: 3
