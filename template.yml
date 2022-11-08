@@ -6,6 +6,29 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: 'sb4539-hw2-photos'
+        PublicAccessBlockConfiguration:
+        BlockPublicAcls: False
+        BlockPublicPolicy: False
+        IgnorePublicAcls: False
+        RestrictPublicBuckets: False
+  PhotoAlbumBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PhotoAlbumBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+              - s3:PutObject
+            Effect: Allow
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref PhotoAlbumBucket
+                - /*
+            Principal: '*'
+
   indexphotos:
     Type: 'AWS::Serverless::Function'
     Properties:
