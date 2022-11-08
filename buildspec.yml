@@ -11,8 +11,8 @@ phases:
       - wait
       - aws s3api put-object --bucket codepipeline-us-east-1-490767416841 --key cors-lambda.zip --body cors-lambda.zip --expected-bucket-owner 964937258460
       - wait
-      - aws lambda update-function-code --function-name search-photos --s3-bucket codepipeline-us-east-1-490767416841 --key search-photos.zip
-      - aws lambda update-function-code --function-name index-photos --s3-bucket codepipeline-us-east-1-490767416841 --key index-photos.zip
-      - aws lambda update-function-code --function-name cors-lambda --s3-bucket codepipeline-us-east-1-490767416841 --key cors-lambda.zip
+      - aws lambda update-function-code --function-name search-photos --s3-bucket codepipeline-us-east-1-490767416841 --s3-key search-photos.zip
+      - aws lambda update-function-code --function-name index-photos --s3-bucket codepipeline-us-east-1-490767416841 --s3-key index-photos.zip
+      - aws lambda update-function-code --function-name cors-lambda --s3-bucket codepipeline-us-east-1-490767416841 --s3-key cors-lambda.zip
     finally:
       - echo "Successfully updated lambda functions"
