@@ -6,7 +6,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: 'sb4539-hw2-photos'
-        PublicAccessBlockConfiguration:
+      PublicAccessBlockConfiguration: 
         BlockPublicAcls: False
         BlockPublicPolicy: False
         IgnorePublicAcls: False
