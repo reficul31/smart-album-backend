@@ -35,7 +35,7 @@ Resources:
       FunctionName: index-photos
       Handler: index-photos.lambda_handler
       Runtime: python3.8
-      CodeUri: ./index-photos
+      CodeUri: ./index-photos.py
       Description: ''
       MemorySize: 128
       Timeout: 60
@@ -54,7 +54,7 @@ Resources:
       FunctionName: search-photos
       Handler: search-photos.lambda_handler
       Runtime: python3.8
-      CodeUri: ./search-photos
+      CodeUri: ./search-photos.py
       Description: ''
       MemorySize: 128
       Timeout: 60
@@ -73,7 +73,7 @@ Resources:
       FunctionName: cors-lambda
       Handler: cors-lambda.lambda_handler
       Runtime: python3.8
-      CodeUri: ./cors-lambda
+      CodeUri: ./cors-lambda.py
       Description: ''
       MemorySize: 128
       Timeout: 3
