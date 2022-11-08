@@ -27,7 +27,6 @@ def lambda_handler(event, context):
         
         client = boto3.client('rekognition')
         response = client.detect_labels(Image={'S3Object': {'Bucket': bucket, 'Name': photo}}, MaxLabels=10)
-        print("Rekognition Reponse: {}".format(response))
         labels = labels + [label['Name'].lower() for label in response['Labels']]
         
         createdTimestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
