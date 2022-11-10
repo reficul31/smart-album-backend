@@ -1,0 +1,371 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: CloudFormation stack for Smart Photo Album for CCBD Assignment 2.
+Resources:
+  PhotoAlbumBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: 'sb4539-hw2-photos'
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: False
+        BlockPublicPolicy: False
+        IgnorePublicAcls: False
+        RestrictPublicBuckets: False
+  PhotoAlbumBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Bucket: !Ref PhotoAlbumBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+              - s3:PutObject
+            Effect: Allow
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref PhotoAlbumBucket
+                - /*
+            Principal: '*'
+  FrontEndBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: 'sb4539-hw2-frontend'
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: False
+        BlockPublicPolicy: False
+        IgnorePublicAcls: False
+        RestrictPublicBuckets: False
+  FrontEndBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DeletionPolicy: Delete
+    Properties:
+      Bucket: !Ref FrontEndBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref FrontEndBucket
+                - /*
+            Principal: '*'
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    DeletionPolicy: Delete
+    DependsOn: IndexPhotosLambda
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+        - IndexPhotosLambda
+        - Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount:
+        Fn::Sub: ${AWS::AccountId}
+      SourceArn:
+        Fn::GetAtt:
+        - PhotoAlbumBucket
+        - Arn
+  SmartPhotoRestApi:
+    Type: AWS::ApiGateway::RestApi
+    DeletionPolicy: Delete
+    Properties:
+      BinaryMediaTypes: ["*/*"]
+      Name: "AI Photo Search"
+      Description: "AI Photo Search application, built during the Cloud and Big Data course at Columbia University."
+  SmartPhotoRestApiUploadResource:
+    Type: AWS::ApiGateway::Resource
+    DependsOn: SmartPhotoRestApi
+    DeletionPolicy: Delete
+    Properties:
+      RestApiId: !Ref SmartPhotoRestApi
+      ParentId: !GetAtt
+        - SmartPhotoRestApi
+        - RootResourceId
+      PathPart: "upload"
+  SmartPhotoRestApiSearchResource:
+    Type: AWS::ApiGateway::Resource
+    DependsOn: SmartPhotoRestApi
+    DeletionPolicy: Delete
+    Properties:
+      RestApiId: !Ref SmartPhotoRestApi
+      ParentId: !GetAtt
+        - SmartPhotoRestApi
+        - RootResourceId
+      PathPart: "search"
+  SmartPhotoRestApiPutRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: SmartPhotoRestApiUploadResource
+    DeletionPolicy: Delete
+    Properties:
+      ApiKeyRequired: False
+      AuthorizationType: NONE
+      HttpMethod: PUT
+      Integration:
+        Type: AWS
+        Credentials: arn:aws:iam::964937258460:role/AWSAPIGatewayPhotosRole
+        IntegrationHttpMethod: PUT
+        IntegrationResponses:
+          - StatusCode: 200
+        RequestParameters:
+          integration.request.path.bucket: method.request.header.bucket
+          integration.request.path.key: method.request.header.key
+          integration.request.header.x-amz-meta-customLabels: method.request.header.x-amz-meta-customLabels
+        Uri: arn:aws:apigateway:us-east-1:s3:path/{bucket}/{key}
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 403
+        - StatusCode: 500
+      OperationName: "/upload"
+      RequestParameters:
+        method.request.header.bucket: True
+        method.request.header.key: True
+        method.request.header.x-amz-meta-customLabels: True
+      ResourceId: !Ref SmartPhotoRestApiUploadResource
+      RestApiId: !Ref SmartPhotoRestApi
+  SmartPhotoRestApiGetRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: SmartPhotoRestApiSearchResource
+    DeletionPolicy: Delete
+    Properties:
+      ApiKeyRequired: False
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: GET
+        IntegrationResponses:
+          - StatusCode: 200
+        RequestTemplates:
+          "application/json": "{\"q\": \"$input.params('q')\"}"
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt SearchPhotosLambda.Arn
+      MethodResponses:
+        - StatusCode: 200
+        - StatusCode: 403
+        - StatusCode: 500
+      OperationName: "/search"
+      RequestParameters:
+        method.request.querystring.q: True
+      ResourceId: !Ref SmartPhotoRestApiSearchResource
+      RestApiId: !Ref SmartPhotoRestApi
+  SmartPhotoRestApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DeletionPolicy: Delete
+    DependsOn:
+      - SmartPhotoRestApiPutRequest
+      - SmartPhotoRestApiGetRequest
+    Properties:
+      RestApiId: !Ref SmartPhotoRestApi
+      StageName: PROD
+  SearchPhotosLambdaRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName:
+        Fn::Sub: search-photos-lambda-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::964937258460:policy/LexV2LambdaPolicyAccess
+      Policies:
+        - PolicyDocument: {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": "logs:CreateLogGroup",
+                      "Resource": "arn:aws:logs:us-east-1:964937258460:*"
+                  },
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                      ],
+                      "Resource": [
+                          "arn:aws:logs:us-east-1:964937258460:log-group:/aws/lambda/LF2:*"
+                      ]
+                  }
+              ]
+          }
+          PolicyName: AWSLambdaBasicExecutionRole-search-photos-lambda
+      Path: /
+  SearchPhotosLambda:
+    Type: 'AWS::Lambda::Function'
+    DeletionPolicy: Delete
+    DependsOn: ["SearchPhotosLambdaRole"]
+    Properties:
+      Code:
+        S3Bucket: sb4539-deployment-bucket
+        S3Key: search-photos.zip
+      Description: ''
+      FunctionName: LF2
+      Handler: search-photos.lambda_handler
+      Layers: [arn:aws:lambda:us-east-1:964937258460:layer:PythonRequestsDependencyLayer:3]
+      MemorySize: 128
+      PackageType: Zip
+      Role: !GetAtt SearchPhotosLambdaRole.Arn
+      Runtime: python3.8
+      Timeout: 60
+  CorsLambdaRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName:
+        Fn::Sub: cors-lambda-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+      Policies:
+        - PolicyDocument: {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": "logs:CreateLogGroup",
+                      "Resource": "arn:aws:logs:us-east-1:964937258460:*"
+                  },
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                      ],
+                      "Resource": [
+                          "arn:aws:logs:us-east-1:964937258460:log-group:/aws/lambda/LF0:*"
+                      ]
+                  }
+              ]
+          }
+          PolicyName: AWSLambdaBasicExecutionRole-cors-lambda
+      Path: /
+  CorsLambda:
+    Type: 'AWS::Lambda::Function'
+    DeletionPolicy: Delete
+    DependsOn: ["CorsLambdaRole"]
+    Properties:
+      Code:
+        S3Bucket: sb4539-deployment-bucket
+        S3Key: cors-lambda.zip
+      Description: ''
+      FunctionName: LF0
+      Handler: cors-lambda.lambda_handler
+      Layers: [arn:aws:lambda:us-east-1:964937258460:layer:PythonRequestsDependencyLayer:3]
+      MemorySize: 128
+      PackageType: Zip
+      Role: !GetAtt CorsLambdaRole.Arn
+      Runtime: python3.8
+      Timeout: 3
+  IndexPhotosLambdaRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName:
+        Fn::Sub: index-photos-lambda-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+            - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonRekognitionFullAccess
+      Policies:
+        - PolicyDocument: {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Action": "logs:CreateLogGroup",
+                      "Resource": "arn:aws:logs:us-east-1:964937258460:*"
+                  },
+                  {
+                      "Effect": "Allow",
+                      "Action": [
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                      ],
+                      "Resource": [
+                          "arn:aws:logs:us-east-1:964937258460:log-group:/aws/lambda/LF1:*"
+                      ]
+                  }
+              ]
+          }
+          PolicyName: AWSLambdaBasicExecutionRole-index-photos-lambda
+      Path: /
+  IndexPhotosLambda:
+    Type: 'AWS::Serverless::Function'
+    DeletionPolicy: Delete
+    DependsOn: ["IndexPhotosLambdaRole"]
+    Properties:
+      FunctionName: LF1
+      Handler: index-photos.lambda_handler
+      Runtime: python3.8
+      Description: ''
+      MemorySize: 128
+      Timeout: 60
+      PackageType: Zip
+      CodeUri: s3://codepipeline-us-east-1-490767416841/index-photos.zip
+      Role: !GetAtt IndexPhotosLambdaRole.Arn
+      Layers: [arn:aws:lambda:us-east-1:964937258460:layer:PythonRequestsDependencyLayer:3]
+  PhotoIndexOpenSearchDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: 'photos'
+      AdvancedSecurityOptions:
+        Enabled: true
+        InternalUserDatabaseEnabled: true
+        MasterUserOptions:
+          MasterUserName: 'master'
+          MasterUserPassword: 'Columbia110x3$'
+      ClusterConfig:
+        InstanceType: 't3.small.search'
+        InstanceCount: 1
+        DedicatedMasterEnabled: False
+        ZoneAwarenessEnabled: False
+        WarmEnabled: False
+      CognitoOptions:
+        Enabled: False
+      DomainEndpointOptions:
+        EnforceHTTPS: True
+        TLSSecurityPolicy: Policy-Min-TLS-1-0-2019-07
+        CustomEndpointEnabled: False
+      EBSOptions:
+        EBSEnabled: True
+        VolumeType: gp2
+        VolumeSize: 10
+      EncryptionAtRestOptions:
+        Enabled: true
+      NodeToNodeEncryptionOptions:
+        Enabled: true

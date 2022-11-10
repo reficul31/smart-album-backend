@@ -5,14 +5,14 @@ phases:
       - zip search-photos.zip search-photos.py
       - zip index-photos.zip index-photos.py
       - zip cors-lambda.zip cors-lambda.py
-      - aws s3api put-object --bucket codepipeline-us-east-1-490767416841 --key search-photos.zip --body search-photos.zip --expected-bucket-owner 964937258460
+      - aws s3api put-object --bucket sb4539-deployment-bucket --key search-photos.zip --body search-photos.zip --expected-bucket-owner 964937258460
       - wait
-      - aws s3api put-object --bucket codepipeline-us-east-1-490767416841 --key index-photos.zip --body index-photos.zip --expected-bucket-owner 964937258460
+      - aws s3api put-object --bucket sb4539-deployment-bucket --key index-photos.zip --body index-photos.zip --expected-bucket-owner 964937258460
       - wait
-      - aws s3api put-object --bucket codepipeline-us-east-1-490767416841 --key cors-lambda.zip --body cors-lambda.zip --expected-bucket-owner 964937258460
+      - aws s3api put-object --bucket sb4539-deployment-bucket --key cors-lambda.zip --body cors-lambda.zip --expected-bucket-owner 964937258460
       - wait
-      - aws lambda update-function-code --function-name search-photos --s3-bucket codepipeline-us-east-1-490767416841 --s3-key search-photos.zip
-      - aws lambda update-function-code --function-name index-photos --s3-bucket codepipeline-us-east-1-490767416841 --s3-key index-photos.zip
-      - aws lambda update-function-code --function-name cors-lambda --s3-bucket codepipeline-us-east-1-490767416841 --s3-key cors-lambda.zip
+      - aws lambda update-function-code --function-name LF2 --s3-bucket sb4539-deployment-bucket --s3-key search-photos.zip
+      - aws lambda update-function-code --function-name LF1 --s3-bucket sb4539-deployment-bucket --s3-key index-photos.zip
+      - aws lambda update-function-code --function-name LF0 --s3-bucket sb4539-deployment-bucket --s3-key cors-lambda.zip
     finally:
       - echo "Successfully updated lambda functions"
