@@ -17,6 +17,7 @@ def send_response(photos):
     } for photo in photos]}
 
 def lambda_handler(event, context):
+    print("Test statement")
     print("Event: {}".format(event))
     
     if 'q' not in event:
